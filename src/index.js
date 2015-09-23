@@ -67,7 +67,9 @@ function updateCalendar(xml) {
   calendar.update.call(calendar, xml);
   var updateEnd = new Date();
   var updateTime = updateEnd - updateStart;
-  document.getElementById('update-time').textContent = updateTime;
+  var timeElement = document.getElementById('update-time');
+  timeElement.textContent = updateTime;
+  timeElement.innerText = updateTime;
 }
 
 addEventListeners();

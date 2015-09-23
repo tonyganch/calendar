@@ -74,7 +74,7 @@ var utils = {
    */
   getCurrentDayFromXml: function(xml) {
     var todayElement = xml.getElementsByTagName('dayinweek')[0];
-    var today = todayElement.textContent || todayElement.innerText;
+    var today = this.getTextFromElement(todayElement);
     var timestamp = parseInt(today, 10);
     return this.convertUnixTimestampToDate(timestamp);
   },
@@ -115,16 +115,16 @@ var utils = {
     // Convert a collection to an array.
     return this.map(events, function(event) {
       var titleElement = event.getElementsByTagName('title')[0];
-      var title = titleElement.textContent || titleElement.innerText;
+      var title = self.getTextFromElement(titleElement);
 
       var startElement = event.getElementsByTagName('start')[0];
-      var start = startElement.textContent || startElement.innerText;
+      var start = self.getTextFromElement(startElement);
       var startTimestamp = parseInt(start, 10);
       var startDate = self.convertUnixTimestampToDate(startTimestamp);
       self.roundEventStartTime(startDate);
 
       var endElement = event.getElementsByTagName('end')[0];
-      var end = endElement.textContent || endElement.innerText;
+      var end = self.getTextFromElement(endElement);
       var endTimestamp = parseInt(end, 10);
       var endDate = self.convertUnixTimestampToDate(endTimestamp);
       self.roundEventEndTime(endDate);
@@ -138,6 +138,20 @@ var utils = {
         duration: duration
       };
     });
+  },
+
+  /**
+   * Gets element's text content.
+   * @param {HTMLElement} element
+   * @return {String}
+   */
+  getTextFromElement: function(element) {
+    if (element.textContent) {
+      return element.textContent;
+    } else {
+      // Support IE 8.
+      return element.childNodes[0].nodeValue;
+    }
   },
 
   /**
