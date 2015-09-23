@@ -74,10 +74,10 @@ Calendar.prototype = {
    */
   highlightDay: function(date) {
     var currentDay = this.host.querySelector('.is-current');
-    if (currentDay) currentDay.classList.remove('is-current');
+    if (currentDay) currentDay.removeAttribute('is-current');
 
     var today = this.getDayElementByDate(date);
-    today.classList.add('is-current');
+    today.setAttribute('is-current', true);
   },
 
   /**
@@ -171,7 +171,7 @@ Calendar.prototype = {
    */
   createEventElement: function() {
     var eventElement = document.createElement('div');
-    eventElement.classList.add('cal-event');
+    eventElement.className = 'cal-event';
     return eventElement;
   },
 

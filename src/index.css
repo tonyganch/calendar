@@ -92,7 +92,7 @@ body {
 .cal-day:first-child {
   border: none;
 }
-.cal-day.is-current {
+.cal-day[is-current] {
   background-color: #e9f0ff;
 }
 .cal-day-title {
@@ -106,7 +106,7 @@ body {
   border-bottom: 1px solid #ccc;
   margin: 0 -1px 0 0;
 }
-.cal-day.is-current .cal-day-title {
+.cal-day[is-current] .cal-day-title {
   font-weight: bold;
 }
 
