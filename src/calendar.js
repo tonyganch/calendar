@@ -343,15 +343,19 @@ Calendar.prototype = {
     var binsForCurrentDay = this.bins[day];
     var numberOfBinsForCurrentDay = binsForCurrentDay.length;
     var gapsForCurrentDay = this.gaps[day];
-    var bin = event[2] + 1;
+    var bin = event[2] + event[3];
 
     binsLoop:
     while (bin < numberOfBinsForCurrentDay) {
       var gapsForCurrentBin = gapsForCurrentDay[bin];
       if (!gapsForCurrentBin) {
         if (event[0] < binsForCurrentDay[bin]) {
+          // There are no gaps and event starts before all events in the next
+          // bin end.
           break;
         } else {
+          // There are no gaps but event starts after all events in the next bin
+          // end, so we can widen the event.
           event[3]++;
           bin++;
           continue;
@@ -363,11 +367,25 @@ Calendar.prototype = {
       for (; gapIndex < numberOfGaps; gapIndex++) {
         var gap = gapsForCurrentBin[gapIndex];
         if (event[0] < gap[0]) {
+          // There is a gap in the next column but event start before that gap
+          // so we cannot accomodate the event there.
           break binsLoop;
         } else {
           if (event[1] > gap[1]) {
+            // There is a gap in the next column that starts before the event,
+            // but event ends after the gap, so the event is too big and we
+            // cannot accomodate it in the gap.
+            // But if it was the last gap, check if bin has empty space at that
+            // time so maybe we can widen the event.
+            if (event[0] >= binsForCurrentDay[bin]) {
+              gapsForCurrentDay[bin] = null;
+              event[3]++;
+              this.maybeWidenEvent(day, event);
+            }
             break binsLoop;
           } else {
+            // There is a gap in the next column that starts before the event
+            // and event is small enough to put it into the gap.
             event[3]++;
             continue;
           }
