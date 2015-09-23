@@ -32,7 +32,7 @@ Calendar.prototype = {
   lastUpdatedDay: null,
 
   /**
-   * List of displayed eventsd. Contains information about start/end time of the
+   * List of displayed events. Contains information about start/end time of the
    * events, its column index and width in columns. Grouped by date.
    * @type {?Array}
    */
