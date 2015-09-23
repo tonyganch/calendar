@@ -63,9 +63,9 @@ function getXmlByUrl(url, callback) {
  */
 function updateCalendar(xml) {
   // Don't use Performance.now() or Date.now() to support IE 8.
-  var updateStart = new Date();
+  var updateStart = new Date().getTime();
   calendar.update.call(calendar, xml);
-  var updateEnd = new Date();
+  var updateEnd = new Date().getTime();
   var updateTime = updateEnd - updateStart;
   var timeElement = document.getElementById('update-time');
   timeElement.textContent = updateTime;
