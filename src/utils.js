@@ -85,7 +85,7 @@ var utils = {
     var events = xml.getElementsByTagName('item');
 
     // Convert a collection to an array.
-    return Array.prototype.map.call(events, function(event) {
+    return this.map(events, function(event) {
       var title = event.getElementsByTagName('title')[0].textContent;
 
       var start = event.getElementsByTagName('start')[0].textContent;
@@ -131,6 +131,37 @@ var utils = {
 
     var weekStartDate = date.getDate() - weekDay + 1;
     return new Date(date.getFullYear(), date.getMonth(), weekStartDate);
+  },
+
+  /**
+   * Cross-browser implemetation of `Array.prototype.map.call(collection)`.
+   * @param {HTMLCollection} collection List of elements to map.
+   * @param {Function} callback Function to call for each element in collection.
+   * @return {Array}
+   */
+  map: function(collection, callback) {
+    if (Array.prototype.map) {
+      return Array.prototype.map.call(collection, callback);
+    } else {
+      // Polyfill is taken from MDN.
+      // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/
+      // Global_Objects/Array/map
+      var O = Object(collection);
+      var len = O.length >>> 0;
+      var A = new Array(len);
+      var k = 0;
+
+      while (k < len) {
+        if (k in O) {
+          var kValue = O[k];
+          var mappedValue = callback(kValue, k, O);
+          A[k] = mappedValue;
+        }
+        k++;
+      }
+
+      return A;
+    }
   },
 
   /**
