@@ -28,6 +28,33 @@ var utils = {
   },
 
   /**
+   * Cross-browser implemetation of `Array.prototype.filter`.
+   * @param {Array} list List to filter.
+   * @param {Function} callback Function to test each element of the array.
+   * @return {Array}
+   */
+  filter: function(list, callback) {
+    if (Array.prototype.filter) {
+      return list.filter(callback);
+    } else {
+      var t = Object(list);
+      var len = t.length >>> 0;
+
+      var res = [];
+      for (var i = 0; i < len; i++) {
+        if (i in t) {
+          var val = t[i];
+          if (callback(val, i, t)) {
+            res.push(val);
+          }
+        }
+      }
+
+      return res;
+    }
+  },
+
+  /**
    * Filters events for a given week.
    * @param {Array} events List of events to filter.
    * @param {Date} weekStart Start date of the week.
@@ -35,7 +62,7 @@ var utils = {
    */
   filterEventsByWeek: function(events, weekStart) {
     var weekEnd = this.getWeekEnd(weekStart);
-    return events.filter(function(event) {
+    return this.filter(events, function(event) {
       return weekStart <= event.start || event.start <= weekEnd;
     });
   },
