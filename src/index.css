@@ -105,6 +105,9 @@ body {
   top: -26px;
   border-bottom: 1px solid #ccc;
   margin: 0 -1px 0 0;
+  overflow: hidden;
+  -ms-text-overflow: ellipsis;
+  text-overflow: ellipsis;
 }
 .cal-day[is-current] .cal-day-title {
   font-weight: bold;

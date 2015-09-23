@@ -103,8 +103,14 @@ Calendar.prototype = {
    * @return {String}
    */
   formatDateForDayHeader: function(date) {
-    var formatOptions = {weekday: 'short', day: 'numeric', month: 'short'};
-    return date.toLocaleString([], formatOptions);
+    if (typeof Intl !== 'undefined') {
+      // Date formatters are supported.
+      var formatOptions = {weekday: 'short', day: 'numeric', month: 'short'};
+      return date.toLocaleString([], formatOptions);
+    } else {
+      // Fallback for IE.
+      return date.toDateString();
+    }
   },
 
   /**
