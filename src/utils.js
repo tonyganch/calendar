@@ -73,7 +73,8 @@ var utils = {
    * @return {Date} Current day.
    */
   getCurrentDayFromXml: function(xml) {
-    var today = xml.getElementsByTagName('dayinweek')[0].textContent;
+    var todayElement = xml.getElementsByTagName('dayinweek')[0];
+    var today = todayElement.textContent || todayElement.innerText;
     var timestamp = parseInt(today, 10);
     return this.convertUnixTimestampToDate(timestamp);
   },
@@ -113,14 +114,17 @@ var utils = {
 
     // Convert a collection to an array.
     return this.map(events, function(event) {
-      var title = event.getElementsByTagName('title')[0].textContent;
+      var titleElement = event.getElementsByTagName('title')[0];
+      var title = titleElement.textContent || titleElement.innerText;
 
-      var start = event.getElementsByTagName('start')[0].textContent;
+      var startElement = event.getElementsByTagName('start')[0];
+      var start = startElement.textContent || startElement.innerText;
       var startTimestamp = parseInt(start, 10);
       var startDate = self.convertUnixTimestampToDate(startTimestamp);
       self.roundEventStartTime(startDate);
 
-      var end = event.getElementsByTagName('end')[0].textContent;
+      var endElement = event.getElementsByTagName('end')[0];
+      var end = endElement.textContent || endElement.innerText;
       var endTimestamp = parseInt(end, 10);
       var endDate = self.convertUnixTimestampToDate(endTimestamp);
       self.roundEventEndTime(endDate);

@@ -90,7 +90,9 @@ Calendar.prototype = {
 
     for (var i = 0; i < DAYS_IN_WEEK; i++) {
       var dayTitle = this.formatDateForDayHeader(currentDay);
-      this.days[i].querySelector('.cal-day-title').textContent = dayTitle;
+      var dayTitleElement = this.days[i].querySelector('.cal-day-title');
+      dayTitleElement.textContent = dayTitle;
+      dayTitleElement.innerText = dayTitle;
       currentDay.setDate(currentDay.getDate() + 1);
     }
   },
@@ -182,6 +184,7 @@ Calendar.prototype = {
    */
   setEventTitle: function(eventElement, event) {
     eventElement.textContent = event.title;
+    eventElement.innerText = event.title;
     eventElement.title = event.title;
   },
 
