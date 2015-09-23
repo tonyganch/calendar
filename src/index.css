@@ -84,10 +84,8 @@ body {
   height: 100%;
   width: 14.28%;
   position: relative;
-  background-image: repeating-linear-gradient(
-                      180deg,
-                      transparent, transparent 29px,
-                      #ccc 29px, #ccc 30px);
+  backfround-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAeCAYAAAGakkRRAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAACpJREFUeNpi+P//PwMTAxAgCIAAYsAiBhBA2MTQCIAAI0IJMcS5s2f/AwBtRg+QcrRI1wAAAABJRU5ErkJggg==);
+  background-image: repeating-linear-gradient(180deg, transparent, transparent 29px, #ccc 29px, #ccc 30px);
 }
 .cal-day:first-child {
   border: none;
@@ -106,7 +104,6 @@ body {
   border-bottom: 1px solid #ccc;
   margin: 0 -1px 0 0;
   overflow: hidden;
-  -ms-text-overflow: ellipsis;
   text-overflow: ellipsis;
 }
 .cal-day[is-current] .cal-day-title {
