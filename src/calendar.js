@@ -130,7 +130,8 @@ Calendar.prototype = {
     if (!eventElements) return;
 
     for (var i = eventElements.length; i--;) {
-      eventElements[i].remove();
+      var element = eventElements[i];
+      element.parentNode.removeChild(element);
     }
   },
 
