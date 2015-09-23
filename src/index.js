@@ -8,7 +8,22 @@ var calendar = new Calendar(calendarElement);
  */
 function addEventListeners() {
   var form = document.getElementById('form');
-  form.addEventListener('submit', onFormSubmit);
+  addEventListener(form, 'submit', onFormSubmit);
+}
+
+/**
+ * Cross-browser `addEventListener`.
+ * @param {HTMLElement} element Node to which to attach listener.
+ * @param {String} event Event name.
+ * @param {Function} callback
+ */
+function addEventListener(element, event, callback) {
+  if (element.addEventListener) {
+    element.addEventListener(event, callback);
+  } else {
+    // Support IE 8.
+    element.attachEvent(event, callback);
+  }
 }
 
 /**
