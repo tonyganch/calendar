@@ -15,26 +15,26 @@ function Calendar(hostElement) {
 Calendar.prototype = {
   /**
    * Parent element for calendar's view.
-   * @type {HTMLElement}
+   * @type {?HTMLElement}
    */
   host: null,
 
   /**
    * Collection of day elements.
-   * @type {Collection}
+   * @type {?Object}
    */
   days: null,
 
   /**
    * Index of the last day for which events were displayed.
-   * @type {Array}
+   * @type {?Array}
    */
   lastUpdatedDay: null,
 
   /**
    * List of displayed eventsd. Contains information about start/end time of the
    * events, its column index and width in columns. Grouped by date.
-   * @type {Array}
+   * @type {?Array}
    */
   events: null,
 
@@ -42,20 +42,20 @@ Calendar.prototype = {
    * Bins/columns of events for displaying several events on the same spot.
    * Contains information about column's bottom line (last event's end time).
    * Grouped by date.
-   * @type {Array}
+   * @type {?Array}
    */
   bins: null,
 
   /**
    * List of gaps inside bins (empty space not occupied by any event).
    * Contains gap's start/end time. Grouped by date and column.
-   * @type {Array}
+   * @type {?Array}
    */
   gaps: null,
 
   /**
    * Updates calendar: displays events for current week.
-   * @param {XML} xml Events data.
+   * @param {HTMLElement} xml Events data.
    */
   update: function(xml) {
     var today = utils.getCurrentDayFromXml(xml);
@@ -238,7 +238,7 @@ Calendar.prototype = {
   /**
    * If we're displaying an event for a new day (no events were displayed for it
    * before), create group of helpers like bins and gaps.
-   * @param {Date} date
+   * @param {Date} day
    */
   maybeCreateNewHelpersForDay: function(day) {
     if (day === this.lastUpdatedDay) return;
@@ -329,7 +329,6 @@ Calendar.prototype = {
    * If there's a gap, widen event's element to take all available space.
    * @param {Number} day
    * @param {Object} event
-   * @param {Number} i Bin's index after which to create a new bin.
    */
   maybeWidenEvent: function(day, event) {
     var binsForCurrentDay = this.bins[day];
@@ -339,7 +338,7 @@ Calendar.prototype = {
 
     binsLoop:
     while (bin < numberOfBinsForCurrentDay) {
-      var gapsForCurrentBin = gapsForCurrentDay[bin]; // gs
+      var gapsForCurrentBin = gapsForCurrentDay[bin];
       if (!gapsForCurrentBin) {
         if (event[0] < binsForCurrentDay[bin]) {
           break;

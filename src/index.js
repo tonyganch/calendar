@@ -4,14 +4,6 @@ var calendarElement = document.getElementById('cal');
 var calendar = new Calendar(calendarElement);
 
 /**
- * Adds event listeners to the page.
- */
-function addEventListeners() {
-  var form = document.getElementById('form');
-  addEventListener(form, 'submit', onFormSubmit);
-}
-
-/**
  * Cross-browser `addEventListener`.
  * @param {HTMLElement} element Node to which to attach listener.
  * @param {String} event Event name.
@@ -24,6 +16,14 @@ function addEventListener(element, event, callback) {
     // Support IE 8.
     element.attachEvent(event, callback);
   }
+}
+
+/**
+ * Adds event listeners to the page.
+ */
+function addEventListeners() {
+  var form = document.getElementById('form');
+  addEventListener(form, 'submit', onFormSubmit);
 }
 
 /**
@@ -50,13 +50,17 @@ function getXmlByUrl(url, callback) {
 
   var method = 'GET';
   xhr.open(method, url, true);
-  xhr.onreadystatechange = function () {
+  xhr.onreadystatechange = function() {
     if (xhr.readyState !== 4 || xhr.status !== 200) return;
     callback(xhr.responseXML);
   };
   xhr.send(null);
 }
 
+/**
+ * Updates calendar's view with data from xml and writes time statistics.
+ * @param {HTMLElement} xml
+ */
 function updateCalendar(xml) {
   var updateStart = Date.now();
   calendar.update.call(calendar, xml);

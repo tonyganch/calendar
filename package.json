@@ -20,6 +20,7 @@
   },
   "scripts": {
     "build": "./scripts/build.sh",
+    "lint": "./scripts/lint.sh",
     "uglify": "./scripts/uglify.sh"
   }
 }

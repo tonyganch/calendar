@@ -42,7 +42,7 @@ var utils = {
 
   /**
    * Gets current day from xml.
-   * @param {XML} xml
+   * @param {HTMLElement} xml
    * @return {Date} Current day.
    */
   getCurrentDayFromXml: function(xml) {
@@ -77,7 +77,7 @@ var utils = {
 
   /**
    * Gets all events from xml.
-   * @param {XML} xml
+   * @param {HTMLElement} xml
    * @return {Array} List of events in order of appearance in xml.
    */
   getEventsFromXml: function(xml) {
@@ -168,7 +168,6 @@ var utils = {
   /**
    * Sorts events by start time and duration (longer events go first).
    * @param {Array} events List of events to be sorted.
-   * @return {Array} List of sorted events.
    */
   sortEvents: function(events) {
     events.sort(function(first, second) {
@@ -181,7 +180,7 @@ var utils = {
       } else if (first.duration < second.duration) {
         // First event starts the same time as the second one but last shorter.
         return -1;
-      } else if (first.duration > second.duration){
+      } else if (first.duration > second.duration) {
         // First event starts the same time as the second one but last longer.
         return 1;
       } else {
@@ -223,7 +222,6 @@ var utils = {
   /**
    * Splits events that last for multiple days into several one-day events.
    * @param {Array} events List of events to split.
-   * @return {Array} List of one-day events.
    */
   splitEventsByDays: function(events) {
     for (var i = events.length; i--;) {
