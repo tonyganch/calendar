@@ -1,0 +1,126 @@
+html, body {
+  background: #fff;
+  font: 16px Helvetica Neue, Arial, sans-serif;
+}
+
+body {
+  margin: 20px;
+}
+
+/** Common blocks */
+.section {
+  margin-bottom: 30px;
+}
+.title {
+  text-align: center;
+}
+.is-hidden {
+  display: none;
+}
+
+/** Form for xml's url input */
+.form {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.form-input {
+  font-size: inherit;
+  padding: 2px;
+}
+
+/** Statistics */
+.stats {
+  text-align: center;
+}
+
+/** Calendar */
+.cal {
+  border: 1px solid #ccc;
+  position: relative;
+  height: 1440px;
+  margin: 0 0 0 45px;
+  border-bottom: none;
+  padding: 26px 0 0;
+}
+
+/** Timeframe (hours 0:00-23:00) */
+.cal-timeframe {
+  background: #dfdfdf;
+  border: 1px solid #ccc;
+  border-right: none;
+  position: absolute;
+  box-sizing: border-box;
+  width: 46px;
+  left: -46px;
+  top: -1px;
+  padding: 25px 0 0;
+}
+.cal-timeframe-hour {
+  height: 60px;
+  border-top: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  padding: 10px 5px;
+  text-align: right;
+  box-sizing: border-box;
+  font-weight: bold;
+}
+.cal-timeframe-minutes {
+  vertical-align: super;
+  font-size: small;
+  font-weight: normal;
+}
+
+/** Block with days */
+.cal-days {
+  height: 100%;
+  width: 100%;
+}
+
+/** One day */
+.cal-day {
+  border-left: 1px solid #aaa;
+  box-sizing: border-box;
+  float: left;
+  height: 100%;
+  width: 14.28%;
+  position: relative;
+  background-image: repeating-linear-gradient(
+                      180deg,
+                      transparent, transparent 29px,
+                      #ccc 29px, #ccc 30px);
+}
+.cal-day:first-child {
+  border: none;
+}
+.cal-day.is-current {
+  background-color: #e9f0ff;
+}
+.cal-day-title {
+  position: relative;
+  background: #dfdfdf;
+  height: 25px;
+  text-align: center;
+  line-height: 25px;
+  font-size: 14px;
+  top: -26px;
+  border-bottom: 1px solid #ccc;
+  margin: 0 -1px 0 0;
+}
+.cal-day.is-current .cal-day-title {
+  font-weight: bold;
+}
+
+/** One event */
+.cal-event {
+  position: absolute;
+  background-color: #fff;
+  font-size: 12px;
+  box-sizing: border-box;
+  border: 1px solid;
+  border-left-width: 5px;
+  border-radius: 2px;
+  padding: 3px;
+  margin: 0 3px 0 0;
+  overflow: hidden;
+  word-wrap: break-word;
+}

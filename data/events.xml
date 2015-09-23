@@ -1,0 +1,65 @@
+<xml>
+  <dayinweek hr="30.03.2016 15:07:18">1459350438</dayinweek>
+  <items>
+    <item>
+      <title>Overnight</title>
+      <start hr="26.03.2016 02:00:00">1458957600</start>
+      <end hr="27.03.2016 06:30:00">1459060200</end>
+    </item>
+    <item>
+      <title>Just something</title>
+      <start hr="28.03.2016 03:05:00">1459134300</start>
+      <end hr="28.03.2016 09:40:00">1459158000</end>
+    </item>
+    <item>
+      <title>Two-days event</title>
+      <start hr="31.03.2016 03:05:00">1459386300</start>
+      <end hr="01.04.2016 09:40:00">1459496400</end>
+    </item>
+    <item>
+      <title>Event #5</title>
+      <start hr="30.03.2016 04:00:00">1459310400</start>
+      <end hr="30.03.2016 07:00:00">1459321200</end>
+    </item>
+    <item>
+      <title>Event #2</title>
+      <start hr="30.03.2016 01:00:00">1459299600</start>
+      <end hr="30.03.2016 04:00:00">1459310400</end>
+    </item>
+    <item>
+      <title>Event #8</title>
+      <start hr="30.03.2016 05:00:00">1459314000</start>
+      <end hr="30.03.2016 06:00:00">1459317600</end>
+    </item>
+    <item>
+      <title>Event #3</title>
+      <start hr="30.03.2016 02:00:00">1459303200</start>
+      <end hr="30.03.2016 05:00:00">1459314000</end>
+    </item>
+    <item>
+      <title>Event #7</title>
+      <start hr="30.03.2016 05:00:00">1459314000</start>
+      <end hr="30.03.2016 06:00:00">1459317600</end>
+    </item>
+    <item>
+      <title>Event #9</title>
+      <start hr="30.03.2016 06:00:00">1459317600</start>
+      <end hr="30.03.2016 07:00:00">1459321200</end>
+    </item>
+    <item>
+      <title>Event #1</title>
+      <start hr="30.03.2016 01:00:00">1459299600</start>
+      <end hr="30.03.2016 04:00:00">1459310400</end>
+    </item>
+    <item>
+      <title>Event #4</title>
+      <start hr="30.03.2016 03:00:00">1459306800</start>
+      <end hr="30.03.2016 06:00:00">1459317600</end>
+    </item>
+    <item>
+      <title>Event #6</title>
+      <start hr="30.03.2016 05:00:00">1459314000</start>
+      <end hr="30.03.2016 06:00:00">1459317600</end>
+    </item>
+  </items>
+</xml>
