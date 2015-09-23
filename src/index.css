@@ -71,7 +71,7 @@ body {
 }
 
 /** Block with days */
-.cal-days {
+.cal-week {
   height: 100%;
   width: 100%;
 }

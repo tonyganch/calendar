@@ -6,7 +6,7 @@ var utils = require('./utils');
  */
 function Calendar(hostElement) {
   this.host = hostElement;
-  this.mainView = hostElement.querySelector('.cal-days');
+  this.mainView = hostElement.querySelector('.cal-week');
   this.days = hostElement.querySelectorAll('.cal-day');
 
   this.hourHeight = this.mainView.offsetHeight / 24;
