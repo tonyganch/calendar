@@ -14,8 +14,11 @@ body {
 .title {
   text-align: center;
 }
-.is-hidden {
-  display: none;
+.success {
+  color: green;
+}
+.error {
+  color: tomato;
 }
 
 /** Form for xml's url input */
@@ -28,8 +31,8 @@ body {
   padding: 2px;
 }
 
-/** Statistics */
-.stats {
+/** Info about xml load */
+.load-info {
   text-align: center;
 }
 

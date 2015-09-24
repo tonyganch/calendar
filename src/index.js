@@ -51,10 +51,22 @@ function getXmlByUrl(url, callback) {
   var method = 'GET';
   xhr.open(method, url, true);
   xhr.onreadystatechange = function() {
-    if (xhr.readyState !== 4 || xhr.status !== 200) return;
-    callback(xhr.responseXML);
+    if (xhr.readyState !== 4) return;
+    if (xhr.status !== 200 && xhr.status !== 304) {
+      displayLoadErrorMessage(url);
+    } else {
+      displayLoadSuccessMessage(url);
+      callback(xhr.responseXML);
+    }
   };
-  xhr.send(null);
+
+  // Catch errors like "Access to restricted URI denied".
+  try {
+    xhr.send(null);
+  } catch (e) {
+    console.error(e);
+    displayLoadErrorMessage(url);
+  }
 }
 
 /**
@@ -64,12 +76,42 @@ function getXmlByUrl(url, callback) {
 function updateCalendar(xml) {
   // Don't use Performance.now() or Date.now() to support IE 8.
   var updateStart = new Date().getTime();
+
+  // Update calendar's view.
   calendar.update.call(calendar, xml);
+
+  // Show load stats.
   var updateEnd = new Date().getTime();
-  var updateTime = updateEnd - updateStart;
+  displayUpdateTime(updateStart, updateEnd);
+}
+
+function displayUpdateTime(start, end) {
+  var loadStats = document.getElementById('load-stats');
+  loadStats.style.display = 'block';
+
   var timeElement = document.getElementById('update-time');
+  var updateTime = end - start;
   timeElement.textContent = updateTime;
   timeElement.innerText = updateTime;
+}
+
+function displayLoadErrorMessage(xmlUrl) {
+  var loadStats = document.getElementById('load-stats');
+  loadStats.style.display = 'none';
+
+  var loadInfo = document.getElementById('load-message');
+  var message = 'Failed to load file "' + xmlUrl + '".';
+  loadInfo.className = 'error';
+  loadInfo.textContent = message;
+  loadInfo.innerText = message;
+}
+
+function displayLoadSuccessMessage(xmlUrl) {
+  var loadInfo = document.getElementById('load-message');
+  var message = 'File "' + xmlUrl + '" sucessfully loaded.';
+  loadInfo.className = 'success';
+  loadInfo.textContent = message;
+  loadInfo.innerText = message;
 }
 
 addEventListeners();

@@ -15,15 +15,13 @@
       <input class="form-input" id="form-input" placeholder="try `data/events.xml`" type="text" value="data/events.xml"/>
       <input class="form-submit" type="submit" value="Load"/>
     </form>
-  </div>
-
-  <!-- Statistics -->
-  <div class="section stats">
-    <h2 class="title">Statistics</h2>
-    <p>
-      Get xml response => display all events:
-      <span id="update-time"></span> ms.
-    </p>
+    <div class="load-info">
+      <p id="load-message"></p>
+      <p id="load-stats" style="display: none;">
+        Get xml response => display all events:
+        <span id="update-time"></span> ms.
+      </p>
+    </div>
   </div>
 
   <!-- Calendar -->
