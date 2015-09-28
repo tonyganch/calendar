@@ -1,15 +1,14 @@
-var utils = require('./utils');
+var CalendarModel = require('./calendar_model');
 
 /**
  * @param {HTMLElement} hostElement Calendar's parent element.
  * @constructor
  */
 function Calendar(hostElement) {
-  this.host = hostElement;
-  this.mainView = hostElement.querySelector('.cal-week');
-  this.days = hostElement.querySelectorAll('.cal-day');
+  this.model = new CalendarModel();
 
-  this.hourHeight = this.mainView.offsetHeight / 24;
+  this.host = hostElement;
+  this.days = hostElement.querySelectorAll('.cal-day');
 }
 
 Calendar.prototype = {
@@ -26,114 +25,52 @@ Calendar.prototype = {
   days: null,
 
   /**
-   * Index of the last day for which events were displayed.
-   * @type {?Array}
-   */
-  lastUpdatedDay: null,
-
-  /**
-   * List of displayed events. Contains information about start/end time of the
-   * events, its column index and width in columns. Grouped by date.
-   * @type {?Array}
-   */
-  events: null,
-
-  /**
-   * Bins/columns of events for displaying several events on the same spot.
-   * Contains information about column's bottom line (last event's end time).
-   * Grouped by date.
-   * @type {?Array}
-   */
-  bins: null,
-
-  /**
-   * List of gaps inside bins (empty space not occupied by any event).
-   * Contains gap's start/end time. Grouped by date and column.
-   * @type {?Array}
-   */
-  gaps: null,
-
-  /**
    * Updates calendar: displays events for current week.
    * @param {HTMLElement} xml Events data.
    */
   update: function(xml) {
-    var today = utils.getCurrentDayFromXml(xml);
-    var weekStart = utils.getWeekStartByDate(today);
-    var events = utils.getEventsByWeekFromXml(xml, weekStart);
+    this.model.update(xml);
 
-    this.highlightDay(today);
-    this.fillDayHeaders(weekStart);
+    var currentWeekDay = this.model.getCurrentWeekDay();
+    this.highlightDay(currentWeekDay);
+
+    var headers = this.model.getDayHeadersForCurrentWeek();
+    this.fillDayHeaders(headers);
+
+    var events = this.model.getEventsForCurrentWeek();
     this.clearEvents();
     this.displayEvents(events);
   },
 
   /**
-   * Highlight a day.
-   * @param {Date} date
+   * Highlights a day.
+   * @param {Number} weekDay
    */
-  highlightDay: function(date) {
+  highlightDay: function(weekDay) {
     var currentDay = this.host.querySelector('.is-current');
     if (currentDay) currentDay.removeAttribute('is-current');
 
-    var today = this.getDayElementByDate(date);
+    var today = this.days[weekDay - 1];
     today.setAttribute('is-current', true);
   },
 
   /**
-   * Localize and display day headers. For example: `Tue 21 Mar`.
-   * @param {Date} weekStart Start time of the displayed week.
+   * Displays day headers. For example: `Tue 21 Mar`.
+   * @param {Array} headers A list of headers.
    */
-  fillDayHeaders: function(weekStart) {
-    var DAYS_IN_WEEK = 7;
-    var currentDay = new Date(weekStart);
-
-    for (var i = 0; i < DAYS_IN_WEEK; i++) {
-      var dayTitle = this.formatDateForDayHeader(currentDay);
+  fillDayHeaders: function(headers) {
+    for (var i = 0, l = headers.length; i < l; i++) {
+      var dayTitle = headers[i];
       var dayTitleElement = this.days[i].querySelector('.cal-day-title');
       dayTitleElement.textContent = dayTitle;
       dayTitleElement.innerText = dayTitle;
-      currentDay.setDate(currentDay.getDate() + 1);
     }
-  },
-
-  /**
-   * Localizes date to display in day header.
-   * @param {Date} date
-   * @return {String}
-   */
-  formatDateForDayHeader: function(date) {
-    if (typeof Intl !== 'undefined') {
-      // Date formatters are supported.
-      var formatOptions = {weekday: 'short', day: 'numeric', month: 'short'};
-      return date.toLocaleString([], formatOptions);
-    } else {
-      // Fallback for IE.
-      return date.toDateString();
-    }
-  },
-
-  /**
-   * Gets day's element by given date.
-   * @param {Date} date
-   * @return {HTMLElement}
-   */
-  getDayElementByDate: function(date) {
-    var weekDay = date.getDay();
-    // Switch Sunday from week[0] to week[7].
-    if (weekDay === 0) weekDay = 7;
-    return this.days[weekDay - 1];
   },
 
   /**
    * Removes all displayed events from calendar.
    */
   clearEvents: function() {
-    this.lastUpdatedDay = null;
-    this.events = [];
-    this.bins = [];
-    this.gaps = [];
-
     var eventElements = this.host.querySelectorAll('.cal-event');
     if (!eventElements) return;
 
@@ -145,7 +82,7 @@ Calendar.prototype = {
 
   /**
    * Displays events.
-   * @param {Array} events Sorted list of events to display.
+   * @param {Array} events List of events to display.
    */
   displayEvents: function(events) {
     var i = 0;
@@ -153,23 +90,28 @@ Calendar.prototype = {
     for (; i < eventsLength; i++) {
       this.displayEvent(events[i]);
     }
-
-    this.fillAvailableGaps();
-    this.setEventsWidth();
   },
 
   /**
    * Displays one given event.
-   * @param {Object} event
+   * @param {Object} eventData
    */
-  displayEvent: function(event) {
+  displayEvent: function(eventData) {
     var eventElement = this.createEventElement();
-    this.setEventTitle(eventElement, event);
-    this.setEventTopPosition(eventElement, event);
-    this.setEventHeight(eventElement, event);
-    this.putEventIntoRightBin(event);
 
-    var dayElement = this.getDayElementByDate(event.start);
+    var title = eventData.title;
+    this.setEventTitle(eventElement, title);
+
+    var start = eventData.startInHours;
+    this.setEventTopPosition(eventElement, start);
+
+    var duration = eventData.duration;
+    this.setEventHeight(eventElement, duration);
+
+    this.setEventWidth(eventElement, eventData);
+
+    var weekDay = eventData.weekDay;
+    var dayElement = this.days[weekDay - 1];
     dayElement.appendChild(eventElement);
   },
 
@@ -186,247 +128,53 @@ Calendar.prototype = {
   /**
    * Displays event's title.
    * @param {HTMLElement} eventElement Element for which to display title.
-   * @param {Object} event Event data.
+   * @param {String} title Event title.
    */
-  setEventTitle: function(eventElement, event) {
-    eventElement.textContent = event.title;
-    eventElement.innerText = event.title;
-    eventElement.title = event.title;
+  setEventTitle: function(eventElement, title) {
+    eventElement.textContent = title;
+    eventElement.innerText = title;
+    eventElement.title = title;
   },
 
   /**
    * Sets event element's top/start position.
    * @param {HTMLElement} eventElement Element to position.
-   * @param {Object} event Event data.
+   * @param {Number} hours Event's start time in hours.
    */
-  setEventTopPosition: function(eventElement, event) {
-    var hours = event.start.getHours();
-    var minutes = event.start.getMinutes();
-    var top = hours * this.hourHeight;
-    if (minutes) top += this.hourHeight / 2;
-    eventElement.style.top = top + 'px';
+  setEventTopPosition: function(eventElement, hours) {
+    var HOURS_IN_DAY = 24;
+    var top = hours * 100 / HOURS_IN_DAY;
+    eventElement.style.top = top + '%';
   },
 
   /**
    * Sets event element's height.
    * @param {HTMLElement} eventElement Element for which to set height.
-   * @param {Object} event Event data.
+   * @param {Number} hours Event duration in hours.
    */
-  setEventHeight: function(eventElement, event) {
-    var height = event.duration / 60 * this.hourHeight;
-    eventElement.style.height = height + 'px';
+  setEventHeight: function(eventElement, hours) {
+    var HOURS_IN_DAY = 24;
+    var height = hours * 100 / HOURS_IN_DAY;
+    eventElement.style.height = height + '%';
   },
 
   /**
-   * Sets information about event element's left/right position against other
-   * events on the same day.
-   * @param {Object} event Event data.
+   * Sets event left/right position.
+   * @param {HTMLElement} eventElement Element for which to set position.
+   * @param {Object} eventData
    */
-  putEventIntoRightBin: function(event) {
-    var eventDay = event.start.getDay();
-    // Switch Sunday from week[0] to week[7].
-    if (eventDay === 0) eventDay = 7;
+  setEventWidth: function(eventElement, eventData) {
+    var weekDay = eventData.weekDay;
+    var bin = eventData.bin;
+    var width = eventData.width;
 
-    this.maybeCreateNewHelpersForDay(eventDay);
+    var numberOfBins = this.model.getNumberOfBinsByWeekDay(weekDay);
+    var binWidth = 100 / numberOfBins;
 
-    var bins = this.bins[eventDay];
-    if (!bins.length) {
-      this.createFirstBinWithEvent(eventDay, event);
-    } else {
-      for (var i = 0, l = bins.length; i < l; i++) {
-        if (event.start > bins[i]) {
-          this.putEventIntoBin(eventDay, event, i);
-          break;
-        } else if (i === bins.length - 1) {
-          this.createNewBinWithEvent(eventDay, event, i);
-        }
-      }
-    }
-  },
-
-  /**
-   * If we're displaying an event for a new day (no events were displayed for it
-   * before), create group of helpers like bins and gaps.
-   * @param {Date} day
-   */
-  maybeCreateNewHelpersForDay: function(day) {
-    if (day === this.lastUpdatedDay) return;
-
-    this.lastUpdatedDay = day;
-    this.events[day] = [];
-    this.bins[day] = [];
-    this.gaps[day] = [];
-  },
-
-  /**
-   * Creates the first bin in the day and puts the evnt into it.
-   * @param {Number} day
-   * @param {Object} event
-   */
-  createFirstBinWithEvent: function(day, event) {
-    var bins = this.bins[day];
-    var events = this.events[day];
-
-    bins.push(event.end);
-    events.push([event.start, event.end, 0, 1]);
-  },
-
-  /**
-   * Gets a bin by index and puts the evnt there.
-   * @param {Number} day
-   * @param {Object} event
-   * @param {Number} i Bin's index.
-   */
-  putEventIntoBin: function(day, event, i) {
-    var gaps = this.gaps[day];
-    var events = this.events[day];
-    var bins = this.bins[day];
-    var binEnd = bins[i];
-
-    if (event.start - binEnd > 1) {
-      if (!gaps[i]) gaps[i] = [];
-      gaps[i].push([binEnd, event.start]);
-    }
-
-    bins[i] = event.end;
-    events.push([event.start, event.end, i, 1]);
-  },
-
-  /**
-   * Creates a new (not first) bin and puts the evnt there.
-   * @param {Number} day
-   * @param {Object} event
-   * @param {Number} i Bin's index after which to create a new bin.
-   */
-  createNewBinWithEvent: function(day, event, i) {
-    var bins = this.bins[day];
-    var events = this.events[day];
-    bins[i + 1] = event.end;
-    events.push([event.start, event.end, i + 1, 1]);
-  },
-
-  /**
-   * Fills available space in calendar by expanding events' width when it's
-   * possible.
-   */
-  fillAvailableGaps: function() {
-    // Day 1 is Monday. Since we put Sunday from day 0 to day 7, start from 1.
-    var day = 1;
-    var numberOfDaysWithEvents = this.events.length;
-
-    for (; day <= numberOfDaysWithEvents; day++) {
-      var eventsForCurrentDay = this.events[day];
-      if (!eventsForCurrentDay) continue;
-
-      var binsForCurrentDay = this.bins[day];
-      var numberOfBinsForCurrentDay = binsForCurrentDay.length;
-      if (numberOfBinsForCurrentDay <= 1) continue;
-
-      var gapsForCurrentDay = this.gaps[day];
-      if (!gapsForCurrentDay || !gapsForCurrentDay.length) continue;
-
-      var eventIndex = 0;
-      var numberOfEventsForCurrentDay = eventsForCurrentDay.length;
-      for (; eventIndex < numberOfEventsForCurrentDay; eventIndex++) {
-        var event = eventsForCurrentDay[eventIndex];
-        this.maybeWidenEvent(day, event);
-      }
-    }
-  },
-
-  /**
-   * If there's a gap, widen event's element to take all available space.
-   * @param {Number} day
-   * @param {Object} event
-   */
-  maybeWidenEvent: function(day, event) {
-    var binsForCurrentDay = this.bins[day];
-    var numberOfBinsForCurrentDay = binsForCurrentDay.length;
-    var gapsForCurrentDay = this.gaps[day];
-    var bin = event[2] + event[3];
-
-    binsLoop:
-    while (bin < numberOfBinsForCurrentDay) {
-      var gapsForCurrentBin = gapsForCurrentDay[bin];
-      if (!gapsForCurrentBin) {
-        if (event[0] < binsForCurrentDay[bin]) {
-          // There are no gaps and event starts before all events in the next
-          // bin end.
-          break;
-        } else {
-          // There are no gaps but event starts after all events in the next bin
-          // end, so we can widen the event.
-          event[3]++;
-          bin++;
-          continue;
-        }
-      }
-
-      var numberOfGaps = gapsForCurrentBin.length;
-      var gapIndex = 0;
-      for (; gapIndex < numberOfGaps; gapIndex++) {
-        var gap = gapsForCurrentBin[gapIndex];
-        if (event[0] < gap[0]) {
-          // There is a gap in the next column but event start before that gap
-          // so we cannot accomodate the event there.
-          break binsLoop;
-        } else {
-          if (event[1] > gap[1]) {
-            // There is a gap in the next column that starts before the event,
-            // but event ends after the gap, so the event is too big and we
-            // cannot accomodate it in the gap.
-            // But if it was the last gap, check if bin has empty space at that
-            // time so maybe we can widen the event.
-            if (event[0] >= binsForCurrentDay[bin]) {
-              gapsForCurrentDay[bin] = null;
-              event[3]++;
-              this.maybeWidenEvent(day, event);
-            }
-            break binsLoop;
-          } else {
-            // There is a gap in the next column that starts before the event
-            // and event is small enough to put it into the gap.
-            event[3]++;
-            continue;
-          }
-        }
-      }
-    }
-  },
-
-  /**
-   * Gets information about event's column and width and sets left/right
-   * position.
-   */
-  setEventsWidth: function() {
-    var eventElements = this.host.querySelectorAll('.cal-event');
-    var elementIndex = 0;
-    var numberOfDaysWithEvents = this.events.length;
-
-    // Day 1 is Monday. Since we put Sunday from day 0 to day 7, start from 1.
-    var day = 1;
-
-    for (; day <= numberOfDaysWithEvents; day++) {
-      var eventsForCurrentDay = this.events[day];
-      if (!eventsForCurrentDay) continue;
-
-      var eventIndex = 0;
-      var numberOfEventsForCurrentDay = eventsForCurrentDay.length;
-      for (; eventIndex < numberOfEventsForCurrentDay; eventIndex++) {
-        var numberOfBinsForCurrentDay = this.bins[day].length;
-        var columnWidth = 100 / numberOfBinsForCurrentDay;
-
-        var event = eventsForCurrentDay[eventIndex];
-        var column = event[2];
-        var width = event[3];
-
-        var left = column * columnWidth;
-        var right = 100 - left - width * columnWidth;
-        eventElements[elementIndex].style.left = left + '%';
-        eventElements[elementIndex].style.right = right + '%';
-        elementIndex++;
-      }
-    }
+    var left = bin * binWidth;
+    var right = 100 - left - width * binWidth;
+    eventElement.style.left = left + '%';
+    eventElement.style.right = right + '%';
   }
 };
 
