@@ -1,5 +1,7 @@
 # Calendar
 
+[![Build Status](https://travis-ci.org/tonyganch/calendar.svg?branch=master)](http://travis-ci.org/tonyganch/calendar)
+
 This is a simple calendar viewer that loads data from xml.    
 See demo here: http://tonyganch.com/calendar.
 
