@@ -13,6 +13,7 @@
   },
   "homepage": "https://github.com/tonyganch/calendar#readme",
   "devDependencies": {
+    "blanket": "^1.1.7",
     "browserify": "^11.1.0",
     "espower-loader": "^1.0.0",
     "express": "^4.13.3",
@@ -26,9 +27,15 @@
   },
   "scripts": {
     "build": "./scripts/build.sh",
+    "coverage": "./scripts/coverage.sh",
     "lint": "./scripts/lint.sh",
     "start": "./scripts/start.sh",
     "test": "./scripts/test.sh",
     "uglify": "./scripts/uglify.sh"
+  },
+  "config": {
+    "blanket": {
+      "pattern": "src"
+    }
   }
 }
