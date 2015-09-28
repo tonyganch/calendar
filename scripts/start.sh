@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./scripts/build.sh && node ./test/app.js
+./scripts/build.sh && node ./app.js

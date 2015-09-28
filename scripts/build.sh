@@ -3,7 +3,6 @@
 rm -rf build
 mkdir build
 
-cp -r data build/data
 cp src/index.html build/index.html
 cp src/index.css build/index.css
 
