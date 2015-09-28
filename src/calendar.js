@@ -50,7 +50,7 @@ Calendar.prototype = {
     var currentDay = this.host.querySelector('.is-current');
     if (currentDay) currentDay.removeAttribute('is-current');
 
-    var today = this.days[weekDay - 1];
+    var today = this.days[weekDay];
     today.setAttribute('is-current', true);
   },
 
@@ -111,7 +111,7 @@ Calendar.prototype = {
     this.setEventWidth(eventElement, eventData);
 
     var weekDay = eventData.weekDay;
-    var dayElement = this.days[weekDay - 1];
+    var dayElement = this.days[weekDay];
     dayElement.appendChild(eventElement);
   },
 

@@ -9,7 +9,7 @@ var utils = {
   },
 
   /**
-   * Cross-browser implemetation of `Array.prototype.filter`.
+   * Cross-browser implementation of `Array.prototype.filter`.
    * @param {Array} list List to filter.
    * @param {Function} callback Function to test each element of the array.
    * @return {Array}
@@ -61,19 +61,19 @@ var utils = {
   },
 
   /**
-   * Cross-browser implemetation of `Array.prototype.map.call(collection)`.
-   * @param {HTMLCollection} collection List of elements to map.
+   * Cross-browser implementation of `Array.prototype.map`.
+   * @param {Array} list List of elements to map.
    * @param {Function} callback Function to call for each element in collection.
    * @return {Array}
    */
-  map: function(collection, callback) {
+  map: function(list, callback) {
     if (Array.prototype.map) {
-      return Array.prototype.map.call(collection, callback);
+      return list.map(callback);
     } else {
       // Polyfill is taken from MDN.
       // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/
       // Global_Objects/Array/map
-      var O = Object(collection);
+      var O = Object(list);
       var len = O.length >>> 0;
       var A = new Array(len);
       var k = 0;

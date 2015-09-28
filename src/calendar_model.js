@@ -9,6 +9,13 @@ function CalendarModel() {
 
 CalendarModel.prototype = {
   /**
+   * Number of days in week.
+   * @const
+   * @type {Number}
+   */
+  DAYS_IN_WEEK: 7,
+
+  /**
    * Time step to which all event times should be rounded.
    * @const
    * @type {Number}
@@ -40,40 +47,72 @@ CalendarModel.prototype = {
   /**
    * @type {?Date}
    */
-  weekStart: null,
+  weekEnd: null,
 
   /**
    * @type {?Date}
    */
-  weekEnd: null,
+  weekStart: null,
 
   /**
-   * Index of the last day for which events were displayed.
-   * @type {?Array}
+   * Events data grouped by days.
+   * @type {Array}
+   * @private
    */
-  lastUpdatedDay: null,
+  _days: [],
 
   /**
    * List of displayed events. Contains information about start/end time of the
    * events, its column index and width in columns. Grouped by date.
-   * @type {?Array}
+   * @type {Array}
+   * @private
    */
-  events: null,
+  _events: [],
 
   /**
-   * Bins/columns of events for displaying several events on the same spot.
-   * Contains information about column's bottom line (last event's end time).
-   * Grouped by date.
-   * @type {?Array}
+   * Week day of the last day for which events were displayed.
+   * @type {?Number}
+   * @private
    */
-  bins: null,
+  _lastUpdatedDay: null,
 
   /**
-   * List of gaps inside bins (empty space not occupied by any event).
-   * Contains gap's start/end time. Grouped by date and column.
-   * @type {?Array}
+   * Gets a number of current week day where 0 is Monday and 6 is Sunday.
+   * @returns {Number} A number of current week day.
    */
-  gaps: null,
+  getCurrentWeekDay: function() {
+    return this._getWeekDayByDate(this.currentDay);
+  },
+
+  /**
+   * Gets a list of formatted day headers for current week. For example,
+   * `Tue 22 Sep`.
+   * @returns {Array<String>} A list of headers.
+   */
+  getDayHeadersForCurrentWeek: function() {
+    var days = this._days;
+    return utils.map(days, function(day) {
+      return day.header;
+    });
+  },
+
+  /**
+   * Gets events for current week.
+   * @returns {?Array<Object>} A list of events.
+   */
+  getEventsForCurrentWeek: function() {
+    return this._events;
+  },
+
+  /**
+   * Gets a total number of bins for current week's given week day.
+   * @param {Number} weekDay Number of week day.
+   * @returns {Number}
+   */
+  getNumberOfBinsByWeekDay: function(weekDay) {
+    var bins = this._days[weekDay].bins;
+    return bins ? bins.length : 0;
+  },
 
   /**
    * Updates calendar's model with new data.
@@ -81,140 +120,47 @@ CalendarModel.prototype = {
    */
   update: function(xml) {
     // Dates.
-    this.currentDay = this.getCurrentDayFromXml(xml);
+    this.currentDay = this._getCurrentDayFromXml(xml);
     this.currentWeekDay = this.getCurrentWeekDay();
-    this.weekStart = this.getWeekStart();
-    this.weekEnd = this.getWeekEnd();
+    this.weekStart = this._getWeekStart();
+    this.weekEnd = this._getWeekEnd();
 
     // Events.
-    this.lastUpdatedDay = null;
-    this.bins = [];
-    this.gaps = [];
-    this.days = [];
-    this.events = this.getEventsForCurrentWeekFromXml(xml);
+    this._lastUpdatedDay = null;
+    this._days = this._getDaysData();
+    this._events = this._getEventsForCurrentWeekFromXml(xml);
   },
 
   /**
-   * Gets current day from xml.
-   * @param {HTMLElement} xml
-   * @return {Date} Current day.
+   * Creates a new bin and puts the event there.
+   * @param {Number} dayNumber
+   * @param {Object} event
    */
-  getCurrentDayFromXml: function(xml) {
-    var todayElement = xml.getElementsByTagName('dayinweek')[0];
-    var today = utils.getTextFromElement(todayElement);
-    var timestamp = parseInt(today, 10);
-    return utils.convertUnixTimestampToDate(timestamp);
-  },
+  _createNewBinWithEvent: function(dayNumber, event) {
+    var day = this._days[dayNumber];
+    var bins = day.bins;
+    var id = bins.length;
 
-  getWeekDayByDate: function(date) {
-    var weekDay = date.getDay();
+    var gapBeforeEvent = [day.start.valueOf(), event.start.valueOf() - 1];
+    var gapAfterEvent = [event.end.valueOf() + 1, day.end.valueOf()];
 
-    // Switch Sunday from week[0] to week[7], so a week starts with Monday.
-    if (weekDay === 0) weekDay = 7;
+    bins.push({
+      id: id,
+      end: event.end,
+      events: [event.id],
+      gaps: [gapBeforeEvent, gapAfterEvent]
+    });
 
-    return weekDay;
+    event.bin = id;
   },
 
   /**
-   * @return {Number} A number of current week day.
+   * Checks if the event is held this week.
+   * @param {Object} event
+   * @returns {boolean} True if the event is held this week, false otherwise.
+   * @private
    */
-  getCurrentWeekDay: function() {
-    return this.getWeekDayByDate(this.currentDay);
-  },
-
-  getWeekStart: function() {
-    var today = this.currentDay;
-    var weekDay = this.currentWeekDay || this.getCurrentWeekDay();
-
-    var weekStartDate = today.getDate() - weekDay + 1;
-    return new Date(today.getFullYear(), today.getMonth(), weekStartDate);
-  },
-
-  getWeekEnd: function() {
-    var weekStart = this.weekStart || this.getWeekStart();
-    return weekStart - 1 + this.ONE_WEEK_IN_MS;
-  },
-
-  getDayHeadersForCurrentWeek: function() {
-    var DAYS_IN_WEEK = 7;
-    var headers = [];
-    var weekStart = this.weekStart;
-
-    for (var i = 0; i < DAYS_IN_WEEK; i++) {
-      var currentDay = new Date(weekStart);
-      var currentDate = weekStart.getDate() + 1;
-      currentDay.setDate(currentDate);
-      var header = this.formatDateForDayHeader(currentDay);
-      headers.push(header);
-    }
-
-    return headers;
-  },
-
-  /**
-   * Localizes date to display in day header.
-   * @param {Date} date
-   * @return {String}
-   */
-  formatDateForDayHeader: function(date) {
-    if (typeof Intl !== 'undefined') {
-      // Date formatters are supported.
-      var formatOptions = {weekday: 'short', day: 'numeric', month: 'short'};
-      return date.toLocaleString([], formatOptions);
-    } else {
-      // Fallback for IE.
-      return date.toDateString();
-    }
-  },
-
-  getEventsForCurrentWeekFromXml: function(xml) {
-    var eventsForCurrentWeek = [];
-    var events = xml.getElementsByTagName('item');
-
-    for (var i = 0, l = events.length; i < l; i++) {
-      var event = this.getEventDataFromElement(events, i);
-
-      if (!this.eventIsPlannedForCurrentWeek(event)) continue;
-
-      eventsForCurrentWeek.push(event);
-    }
-
-    return eventsForCurrentWeek;
-  },
-
-  getEventDataFromElement: function(elements, i) {
-    var element = elements[i];
-
-    var titleElement = element.getElementsByTagName('title')[0];
-    var title = utils.getTextFromElement(titleElement);
-
-    var startElement = element.getElementsByTagName('start')[0];
-    var start = utils.getDateFromElement(startElement);
-    this.roundEventStartTime(start);
-
-    var hours = start.getHours();
-    var minutes = start.getMinutes();
-    var startInHours = hours + minutes / 60;
-
-    var endElement = element.getElementsByTagName('end')[0];
-    var end = utils.getDateFromElement(endElement);
-    this.roundEventEndTime(end);
-
-    var duration = this.getEventDurationInHours(start, end);
-
-    return {
-      id: i,
-      title: title,
-      start: start,
-      startInHours: startInHours,
-      end: end,
-      duration: duration,
-      weekDay: this.getWeekDayByDate(start),
-      width: 1
-    };
-  },
-
-  eventIsPlannedForCurrentWeek: function(event) {
+  _eventIsPlannedForCurrentWeek: function(event) {
     // Event ended before current week.
     if (event.end <= this.weekStart) return false;
 
@@ -226,10 +172,345 @@ CalendarModel.prototype = {
   },
 
   /**
+   * Fills available space in calendar by expanding events' width when it's
+   * possible.
+   * @param {Array<Object>} events
+   * @private
+   */
+  _fillAvailableGaps: function(events) {
+    for (var i = 0, l = events.length; i < l; i++) {
+      // Pick an event.
+      var event = events[i];
+      var binNumber = event.bin;
+      var day = this._days[event.weekDay];
+      var numberOfBinsInThisDay = day.bins.length;
+
+      for (; binNumber < numberOfBinsInThisDay; binNumber++) {
+        // Pick gaps from next bin.
+        var bin = day.bins[binNumber + 1];
+        if (!bin) break;
+
+        var gaps = bin.gaps;
+        var eventWasWidened = this._maybeWidenEvent(event, gaps);
+        if (!eventWasWidened) break;
+      }
+    }
+  },
+
+  /**
+   * Localizes date to display in day header.
+   * @param {Date} date
+   * @returns {String}
+   * @private
+   */
+  _formatDateForDayHeader: function(date) {
+    if (typeof Intl !== 'undefined') {
+      // Date formatters are supported.
+      var formatOptions = {weekday: 'short', day: 'numeric', month: 'short'};
+      return date.toLocaleString([], formatOptions);
+    } else {
+      // Fallback for IE.
+      return date.toDateString();
+    }
+  },
+
+  /**
+   * Gets current day from xml.
+   * @param {HTMLElement} xml
+   * @returns {Date} Current day.
+   * @private
+   */
+  _getCurrentDayFromXml: function(xml) {
+    var todayElement = xml.getElementsByTagName('dayinweek')[0];
+    var today = utils.getTextFromElement(todayElement);
+    var timestamp = parseInt(today, 10);
+    return utils.convertUnixTimestampToDate(timestamp);
+  },
+
+  /**
+   * Gets information on all days: start/end time and headers.
+   * @returns {Array<Object>}
+   * @private
+   */
+  _getDaysData: function() {
+    var days = [];
+    var weekStart = this.weekStart;
+
+    for (var i = 0; i < this.DAYS_IN_WEEK; i++) {
+      var start = new Date(weekStart);
+      var date = weekStart.getDate() + i;
+      start.setDate(date);
+
+      var header = this._formatDateForDayHeader(start);
+
+      days.push({
+        start: start,
+        end: start - 1 + this.ONE_DAY_IN_MS,
+        header: header,
+        events: [],
+        bins: []
+      });
+    }
+
+    return days;
+  },
+
+  /**
+   * Gets event data from html element.
+   * @param {NodeList} elements List of events elements.
+   * @param {Number} i Index of the element from which to get data.
+   * @returns {Object}
+   * @private
+   */
+  _getEventDataFromElement: function(elements, i) {
+    var element = elements[i];
+
+    var titleElement = element.getElementsByTagName('title')[0];
+    var title = utils.getTextFromElement(titleElement);
+
+    var startElement = element.getElementsByTagName('start')[0];
+    var start = utils.getDateFromElement(startElement);
+    this._roundEventStartTime(start);
+
+    var hours = start.getHours();
+    var minutes = start.getMinutes();
+    var startInHours = hours + minutes / 60;
+
+    var endElement = element.getElementsByTagName('end')[0];
+    var end = utils.getDateFromElement(endElement);
+    this._roundEventEndTime(end);
+
+    var duration = this._getEventDurationInHours(start, end);
+
+    return {
+      id: i,
+      title: title,
+      start: start,
+      startInHours: startInHours,
+      end: end,
+      duration: duration,
+      weekDay: this._getWeekDayByDate(start),
+      width: 1
+    };
+  },
+
+  /**
+   * Gets event duration in hours.
+   * @param {Date} start Event start time.
+   * @param {Date} end Event end time.
+   * @returns {Number}
+   * @private
+   */
+  _getEventDurationInHours: function(start, end) {
+    var duration = end - start + 1;
+    return duration / 1000 / 60 / 60;
+  },
+
+  /**
+   * Gets a list of events for current week.
+   * @param {HTMLElement} xml Xml from which to get data.
+   * @returns {Array<Object>} A list of event data.
+   * @private
+   */
+  _getEventsDataFromXml: function(xml) {
+    var eventsForCurrentWeek = [];
+    var events = xml.getElementsByTagName('item');
+
+    for (var i = 0, l = events.length; i < l; i++) {
+      var event = this._getEventDataFromElement(events, i);
+
+      if (!this._eventIsPlannedForCurrentWeek(event)) continue;
+
+      eventsForCurrentWeek.push(event);
+    }
+
+    return eventsForCurrentWeek;
+  },
+
+  _getEventsForCurrentWeekFromXml: function(xml) {
+    var events = this._getEventsDataFromXml(xml);
+    this._splitEventsByDays(events);
+    this._sortEvents(events);
+    this._groupEventsByDays(events);
+
+    this._groupEventsByBins(events);
+    this._fillAvailableGaps(events);
+    return events;
+  },
+
+  /**
+   * Gets number of week day for a given date where 0 is Monday and 6 is Sunday.
+   * @param {Date} date
+   * @returns {Number}
+   * @private
+   */
+  _getWeekDayByDate: function(date) {
+    var weekDay = date.getDay();
+
+    // Switch Sunday from week[0] to week[7], so a week starts with Monday.
+    if (weekDay === 0) weekDay = 7;
+
+    return weekDay - 1;
+  },
+
+  /**
+   * Gets current week's end date.
+   * @returns {Date}
+   * @private
+   */
+  _getWeekEnd: function() {
+    var weekStart = this.weekStart || this._getWeekStart();
+    return new Date(weekStart - 1 + this.ONE_WEEK_IN_MS);
+  },
+
+  /**
+   * Gets current week's start date.
+   * @returns {Date}
+   * @private
+   */
+  _getWeekStart: function() {
+    var today = this.currentDay;
+    var weekDay = this.currentWeekDay || this.getCurrentWeekDay();
+
+    var weekStartDate = today.getDate() - weekDay;
+    return new Date(today.getFullYear(), today.getMonth(), weekStartDate);
+  },
+
+  /**
+   * Groups events by days.
+   * @param {Array} events
+   * @private
+   */
+  _groupEventsByDays: function(events) {
+    for (var i = 0, l = events.length; i < l; i++) {
+      var event = events[i];
+      var weekDay = this._getWeekDayByDate(event.start);
+      var day = this._days[weekDay];
+      day.events.push(i);
+    }
+  },
+
+  /**
+   * If there's a gap, widen event's element to take all available space.
+   * @param {Object} event
+   * @param {Array} gaps
+   * @returns {Boolean} If the event was widened.
+   * @private
+   */
+  _maybeWidenEvent: function(event, gaps) {
+    var i = 0;
+    var numberOfGaps = gaps.length;
+
+    for (; i < numberOfGaps; i++) {
+      var gap = gaps[i];
+
+      if (event.start.valueOf() > gap[1]) {
+        // Remove gap and move to the next gap.
+        gaps.splice(i, 1);
+        i--;
+        numberOfGaps--;
+      } else if (event.start.valueOf() < gap[0] ||
+          event.end.valueOf() > gap[1]) {
+        // Move to another event.
+        break;
+      } else {
+        // Edit gap.
+        if (event.end.valueOf() === gap[1]) {
+          // Remove gap.
+          gaps.splice(i, 1);
+          i--;
+          numberOfGaps--;
+        } else {
+          gap[0] = event.end.valueOf() + 1;
+        }
+
+        event.width++;
+        return true;
+      }
+    }
+
+    return false;
+  },
+
+  /**
+   * Gets a bin by index and puts the event there.
+   * @param {Object} event
+   * @param {Object} bin
+   * @private
+   */
+  _putEventIntoBin: function(event, bin) {
+    bin.events.push(event.id);
+    bin.end = event.end;
+    event.bin = bin.id;
+
+    var gaps = bin.gaps;
+    var gap = gaps[gaps.length - 1];
+
+    if (gap[0] === event.start.valueOf()) {
+      gap[0] = event.end.valueOf() + 1;
+    } else if (gap[1] === event.end.valueOf()) {
+      gap[1] = event.start - 1;
+    } else {
+      var newGap = [gap[0], event.start.valueOf() - 1];
+      gaps.splice(gaps.length - 1, 0, newGap);
+      gap[0] = event.end.valueOf() + 1;
+    }
+  },
+
+  /**
+   * Finds a right bin for the event and puts the event there. Creates a bin if
+   * it's needed.
+   * @param {Object} event
+   * @param {Number} dayNumber
+   * @private
+   */
+  _putEventIntoRightBin: function(event, dayNumber) {
+    var bins = this._days[dayNumber].bins;
+    if (!bins.length) {
+      this._createNewBinWithEvent(dayNumber, event);
+    } else {
+      for (var i = 0, l = bins.length; i < l; i++) {
+        if (event.start > bins[i].end) {
+          this._putEventIntoBin(event, bins[i]);
+          break;
+        } else if (i === bins.length - 1) {
+          this._createNewBinWithEvent(dayNumber, event);
+        }
+      }
+    }
+  },
+
+  /**
+   * Divides events into bins.
+   * @private
+   */
+  _groupEventsByBins: function(events) {
+    for (var i = 0, l = this.DAYS_IN_WEEK; i < l; i++) {
+      this._putEventsIntoRightBins(events, i);
+    }
+  },
+
+  /**
+   * Divides events from a given day into bins.
+   * @param {Array<Object>} events
+   * @param {Number} dayNumber
+   * @private
+   */
+  _putEventsIntoRightBins: function(events, dayNumber) {
+    var day = this._days[dayNumber];
+    var dayEvents = day.events;
+    for (var i = 0, l = dayEvents.length; i < l; i++) {
+      var event = events[dayEvents[i]];
+      this._putEventIntoRightBin(event, dayNumber);
+    }
+  },
+
+  /**
    * Rounds event's end time upward to the nearest EVENTS_TIME_STEP.
    * @param {Date} end Event's end time.
+   * @private
    */
-  roundEventEndTime: function(end) {
+  _roundEventEndTime: function(end) {
     var endMinutes = end.getMinutes();
     var endMinutesRemainder = endMinutes % this.EVENTS_TIME_STEP_IN_MINUTES;
 
@@ -244,8 +525,9 @@ CalendarModel.prototype = {
   /**
    * Rounds event's start time downward to the nearest EVENTS_TIME_STEP.
    * @param {Date} start Event's start time.
+   * @private
    */
-  roundEventStartTime: function(start) {
+  _roundEventStartTime: function(start) {
     var startMinutes = start.getMinutes();
     var startMinutesRemainder = startMinutes % this.EVENTS_TIME_STEP_IN_MINUTES;
 
@@ -257,87 +539,49 @@ CalendarModel.prototype = {
     start.setSeconds(0, 0);
   },
 
-  getEventDurationInHours: function(start, end) {
-    var duration = end - start + 1;
-    return duration / 1000 / 60 / 60;
-  },
-
-  getEventsForCurrentWeek: function() {
-    this.splitEventsByDays();
-    this.sortEvents();
-    this.putEventsIntoBins();
-    this.fillAvailableGaps();
-
-    return this.events;
-  },
-
   /**
-   * Splits events that last for multiple days into several one-day events.
+   * Slices a one-day part from the end of a multiple-days event.
+   * @param {Array<Object>} events
+   * @param {Number} i
+   * @returns {Object}
+   * @private
    */
-  splitEventsByDays: function() {
-    for (var i = this.events.length; i--;) {
-      this.splitEventByDays(this.events, i);
-    }
-  },
-
-  /**
-   * Splits event into several one-day events.
-   * @param {Array} events List of events.
-   * @param {Number} i Index of the event to split.
-   */
-  splitEventByDays: function(events, i) {
+  _sliceOneDayFromEventEnd: function(events, i) {
     var event = events[i];
     var end = event.end;
 
-    // Skip one-day events.
-    if (this.startsAndEndsTheSameDay(event)) return;
+    var sliceStart = new Date(end.getFullYear(), end.getMonth(), end.getDate());
 
-    var newStart = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    var hours = sliceStart.getHours();
+    var minutes = sliceStart.getMinutes();
+    var sliceStartInHours = hours + minutes / 60;
 
-    var hours = newStart.getHours();
-    var minutes = newStart.getMinutes();
-    var newStartInHours = hours + minutes / 60;
+    var sliceDuration = this._getEventDurationInHours(sliceStart, end);
 
-    var newDuration = this.getEventDurationInHours(newStart, end);
-
-    var oneDayEvent = {
+    var slice = {
       title: event.title,
-      start: newStart,
-      startInHours: newStartInHours,
+      start: sliceStart,
+      startInHours: sliceStartInHours,
       end: end,
-      duration: newDuration,
-      weekDay: this.getWeekDayByDate(newStart),
+      duration: sliceDuration,
+      weekDay: this._getWeekDayByDate(sliceStart),
       width: 1,
       id: events.length
     };
 
-    events.push(oneDayEvent);
+    event.end = new Date(sliceStart - 1);
+    event.duration = this._getEventDurationInHours(event.start, event.end);
 
-    event.end = new Date(oneDayEvent.start - 1);
-    event.duration = this.getEventDurationInHours(event.start, event.end);
-
-    this.splitEventByDays(events, i);
-  },
-
-  /**
-   * Checks whether event lasts for several days.
-   * @param {Object} event
-   * @return {Boolean} True if event lasts for several days, false otherwise/
-   */
-  startsAndEndsTheSameDay: function(event) {
-    var start = event.start;
-    var startDate = start.getDate();
-    var end = event.end;
-    var endDate = end.getDate();
-
-    return startDate === endDate && end - start < this.ONE_DAY_IN_MS;
+    return slice;
   },
 
   /**
    * Sorts events by start time and duration (longer events go first).
+   * @param {Array<Object>} events List of events to sort.
+   * @private
    */
-  sortEvents: function() {
-    this.events.sort(function(first, second) {
+  _sortEvents: function(events) {
+    events.sort(function(first, second) {
       if (first.start < second.start) {
         // First event start earlier than the second one.
         return -1;
@@ -357,187 +601,51 @@ CalendarModel.prototype = {
     });
   },
 
-  putEventsIntoBins: function() {
-    for (var i = 0, l = this.events.length; i < l; i++) {
-      var event = this.events[i];
-      this.putEventIntoRightBin(event);
-    }
-  },
+  /**
+   * Splits event into several one-day events.
+   * @param {Array} events List of events.
+   * @param {Number} i Index of the event to split.
+   * @private
+   */
+  _splitEventByDays: function(events, i) {
+    var event = events[i];
 
-  putEventIntoRightBin: function(event) {
-    var eventDay = this.getWeekDayByDate(event.start);
+    // Skip one-day events.
+    if (this._startsAndEndsTheSameDay(event)) return;
 
-    this.maybeCreateNewHelpersForDay(eventDay);
+    var slice = this._sliceOneDayFromEventEnd(events, i);
 
-    var bins = this.bins[eventDay];
-    if (!bins.length) {
-      this.createFirstBinWithEvent(eventDay, event);
+    if (this._eventIsPlannedForCurrentWeek(event)) {
+      if (this._eventIsPlannedForCurrentWeek(slice)) events.push(slice);
+      this._splitEventByDays(events, i);
     } else {
-      for (var i = 0, l = bins.length; i < l; i++) {
-        if (event.start > bins[i]) {
-          this.putEventIntoBin(eventDay, event, i);
-          break;
-        } else if (i === bins.length - 1) {
-          this.createNewBinWithEvent(eventDay, event, i);
-        }
-      }
+      if (this._eventIsPlannedForCurrentWeek(slice)) events[i] = slice;
     }
   },
 
   /**
-   * If we're displaying an event for a new day (no events were displayed for it
-   * before), create group of helpers like bins and gaps.
-   * @param {Date} day
+   * Splits events that last for multiple days into several one-day events.
+   * @private
    */
-  maybeCreateNewHelpersForDay: function(day) {
-    if (day === this.lastUpdatedDay) return;
-
-    this.lastUpdatedDay = day;
-    this.days[day] = [];
-    this.bins[day] = [];
-    this.gaps[day] = [];
-  },
-
-  /**
-   * Creates the first bin in the day and puts the evnt into it.
-   * @param {Number} day
-   * @param {Object} event
-   */
-  createFirstBinWithEvent: function(day, event) {
-    var bins = this.bins[day];
-    bins.push(event.end);
-
-    this.days[day].push(event.id);
-    event.bin = 0;
-  },
-
-  /**
-   * Gets a bin by index and puts the evnt there.
-   * @param {Number} day
-   * @param {Object} event
-   * @param {Number} i Bin's index.
-   */
-  putEventIntoBin: function(day, event, i) {
-    var gaps = this.gaps[day];
-    var bins = this.bins[day];
-    var binEnd = bins[i];
-
-    if (event.start - binEnd > 1) {
-      if (!gaps[i]) gaps[i] = [];
-      gaps[i].push([binEnd, event.start]);
-    }
-
-    bins[i] = event.end;
-    this.days[day].push(event.id);
-    event.bin = i;
-  },
-
-  /**
-   * Creates a new (not first) bin and puts the evnt there.
-   * @param {Number} day
-   * @param {Object} event
-   * @param {Number} i Bin's index after which to create a new bin.
-   */
-  createNewBinWithEvent: function(day, event, i) {
-    var bins = this.bins[day];
-    bins[i + 1] = event.end;
-    this.days[day].push(event.id);
-    event.bin = i + 1;
-  },
-
-  /**
-   * Fills available space in calendar by expanding events' width when it's
-   * possible.
-   */
-  fillAvailableGaps: function() {
-    // Day 1 is Monday. Since we put Sunday from day 0 to day 7, start from 1.
-    var day = 1;
-    var numberOfDaysWithEvents = this.days.length;
-
-    for (; day <= numberOfDaysWithEvents; day++) {
-      var eventsForCurrentDay = this.days[day];
-      if (!eventsForCurrentDay) continue;
-
-      var binsForCurrentDay = this.bins[day];
-      var numberOfBinsForCurrentDay = binsForCurrentDay.length;
-      if (numberOfBinsForCurrentDay <= 1) continue;
-
-      var gapsForCurrentDay = this.gaps[day];
-      if (!gapsForCurrentDay || !gapsForCurrentDay.length) continue;
-
-      var eventIndex = 0;
-      var numberOfEventsForCurrentDay = eventsForCurrentDay.length;
-      for (; eventIndex < numberOfEventsForCurrentDay; eventIndex++) {
-        var eventId = eventsForCurrentDay[eventIndex];
-        var event = this.events[eventId];
-        this.maybeWidenEvent(day, event);
-      }
+  _splitEventsByDays: function(events) {
+    for (var i = events.length; i--;) {
+      this._splitEventByDays(events, i);
     }
   },
 
   /**
-   * If there's a gap, widen event's element to take all available space.
-   * @param {Number} day
+   * Checks whether event lasts for several days.
    * @param {Object} event
+   * @returns {Boolean} True if event lasts for several days, false otherwise.
+   * @private
    */
-  maybeWidenEvent: function(day, event) {
-    var binsForCurrentDay = this.bins[day];
-    var numberOfBinsForCurrentDay = binsForCurrentDay.length;
-    var gapsForCurrentDay = this.gaps[day];
-    var bin = event.bin + event.width;
+  _startsAndEndsTheSameDay: function(event) {
+    var start = event.start;
+    var startDate = start.getDate();
+    var end = event.end;
+    var endDate = end.getDate();
 
-    binsLoop:
-    while (bin < numberOfBinsForCurrentDay) {
-      var gapsForCurrentBin = gapsForCurrentDay[bin];
-      if (!gapsForCurrentBin) {
-        if (event.start < binsForCurrentDay[bin]) {
-          // There are no gaps and event starts before all events in the next
-          // bin end.
-          break;
-        } else {
-          // There are no gaps but event starts after all events in the next bin
-          // end, so we can widen the event.
-          event.width++;
-          bin++;
-          continue;
-        }
-      }
-
-      var numberOfGaps = gapsForCurrentBin.length;
-      var gapIndex = 0;
-      for (; gapIndex < numberOfGaps; gapIndex++) {
-        var gap = gapsForCurrentBin[gapIndex];
-        if (event.start < gap[0]) {
-          // There is a gap in the next column but event start before that gap
-          // so we cannot accomodate the event there.
-          break binsLoop;
-        } else {
-          if (event.end > gap[1]) {
-            // There is a gap in the next column that starts before the event,
-            // but event ends after the gap, so the event is too big and we
-            // cannot accomodate it in the gap.
-            // But if it was the last gap, check if bin has empty space at that
-            // time so maybe we can widen the event.
-            if (event.start >= binsForCurrentDay[bin]) {
-              gapsForCurrentDay[bin] = null;
-              event.width++;
-              this.maybeWidenEvent(day, event);
-            }
-            break binsLoop;
-          } else {
-            // There is a gap in the next column that starts before the event
-            // and event is small enough to put it into the gap.
-            event.width++;
-            continue;
-          }
-        }
-      }
-    }
-  },
-
-  getNumberOfBinsByWeekDay: function(weekDay) {
-    var bins = this.bins[weekDay];
-    return bins ? bins.length : 0;
+    return startDate === endDate && end - start < this.ONE_DAY_IN_MS;
   }
 };
 
