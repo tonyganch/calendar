@@ -22,6 +22,7 @@
   "scripts": {
     "build": "./scripts/build.sh",
     "lint": "./scripts/lint.sh",
+    "start": "./scripts/start.sh",
     "uglify": "./scripts/uglify.sh"
   }
 }
