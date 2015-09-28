@@ -215,7 +215,14 @@ CalendarModel.prototype = {
   },
 
   eventIsPlannedForCurrentWeek: function(event) {
-    return this.weekStart <= event.start || event.start <= this.weekEnd;
+    // Event ended before current week.
+    if (event.end <= this.weekStart) return false;
+
+    // Event starts after current week.
+    if (event.start > this.weekEnd) return false;
+
+    // All other variants are fine.
+    return true;
   },
 
   /**
