@@ -1,6 +1,10 @@
 #!/bin/bash
 
-cp src/index.html index.html
-cp src/index.css index.css
+rm -rf build
+mkdir build
 
-./node_modules/.bin/browserify src/index.js > index.js
+cp -r data build/data
+cp src/index.html build/index.html
+cp src/index.css build/index.css
+
+./node_modules/.bin/browserify src/index.js > build/index.js

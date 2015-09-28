@@ -1,1 +1,3 @@
-./node_modules/.bin/uglifyjs --compress --mangle -o index.js index.js
+#!/bin/bash
+
+./node_modules/.bin/uglifyjs --compress --mangle -o build/index.js build/index.js
